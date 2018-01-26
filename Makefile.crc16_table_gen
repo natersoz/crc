@@ -1,0 +1,76 @@
+###
+# crc16/Makefile.crc16_table_gen
+###
+
+NO_ECHO		?= @
+
+TARGET_NAME	= crc16_table_gen
+
+OBJ_PATH=_build
+
+INCLUDE_PATH	+= -I .
+
+vpath %.c .
+
+WARNINGS += -Wall
+WARNINGS += -Wmissing-field-initializers
+WARNINGS += -Wpointer-arith
+WARNINGS += -Wuninitialized
+WARNINGS += -Winit-self
+WARNINGS += -Wstrict-overflow
+WARNINGS += -Wundef
+#WARNINGS += -Wlogical-op
+WARNINGS += -Wshadow
+
+# Need gnu++11 so that fileno works properly on Cygwin
+CXXFLAGS  = -g $(WARNINGS) $(DEFINES) -std=c11
+
+SRC += crc16.c
+SRC += crc16_ccitt.c
+SRC += crc16_table_gen.c
+SRC += crc16_table_init.c
+#SRC += crc16_test.c
+
+OBJ_CC	= $(SRC:.cc=.o)
+OBJ_C	= $(OBJ_CC:.c=.o)
+OBJ_O	= $(OBJ_C:%.o=$(OBJ_PATH)/%.o)
+DEPS	= $(OBJ_C:%.o=$(OBJ_PATH)/%.dep)
+
+all: $(OBJ_PATH) $(OBJ_PATH)/$(TARGET_NAME)
+
+clean:
+	rm -rf Debug
+
+relink:
+	rm -f $(OBJ_PATH)/$(TARGET_NAME)
+	make all
+
+info:
+	@echo "DEFINES           = '$(DEFINES)'"
+	@echo "SRC               = '$(SRC)'"
+	@echo "CYGWIN_PATCH_STOI = '$(CYGWIN_PATCH_STOI)'"
+	@echo "CYGW              = '$(CYGW)'"
+	@echo "DEPS              = '$(DEPS)'"
+
+$(OBJ_PATH)/$(TARGET_NAME): $(OBJ_O)
+	@echo "Linking $@"
+	$(NO_ECHO) g++ $(CXXFLAGS)  $^ -o $@
+
+$(OBJ_PATH):
+	mkdir $(OBJ_PATH)
+
+###
+# Implicit Rules
+###
+$(OBJ_PATH)/%.o : %.cc
+	@echo "Compiling $@"
+	$(NO_ECHO) $(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_PATH) $< -o $@
+	$(NO_ECHO) $(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -MM -MT $@ -MF $(@:.o=.dep) $<
+
+$(OBJ_PATH)/%.o : %.c
+	@echo "Compiling $@"
+	$(NO_ECHO) $(CC) -c $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE_PATH) $< -o $@
+	$(NO_ECHO) $(CC) -c $(CPPFLAGS) $(CXXFLAGS) -MM -MT $@ -MF $(@:.o=.dep) $<
+
+
+-include $(DEPS)
